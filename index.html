@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merit List PDF Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse for CSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <!-- SheetJS (xlsx) for Excel file parsing -->
@@ -484,11 +483,11 @@
 </head>
 <body>
     <div class="credit-line">
-        This webpage is developed by <strong>Mrinmay Medhi</strong> (Research Scholar) under the guidance of <strong>Dr. Upakul Mahanta</strong> (Dept. of Physics, Bhattadev University)
+        📝 This webpage is developed by <strong>Mrinmay Medhi</strong> (Research Scholar) under the guidance of <strong>Dr. Upakul Mahanta</strong> (Dept. of Physics, Bhattadev University)
     </div>
 
     <div class="controls-container">
-        <h2>Merit List Generator</h2>
+        <h2>📋 Merit List Generator</h2>
         
         <div class="form-group">
             <label for="departmentName">Department Name</label>
@@ -517,16 +516,16 @@
         </div>
 
         <div class="form-group">
-            <label for="fileInput"></label>
+            <label for="fileInput">Upload Excel/CSV File</label>
             <div class="file-input-wrapper">
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-                <label for="fileInput" class="file-input-label">Upload Excel/CSV File</label>
+                <label for="fileInput" class="file-input-label">📁 Choose File (Excel or CSV)</label>
             </div>
         </div>
 
         <div class="button-group">
-            <button class="btn btn-primary" onclick="printPreview()">Print Preview</button>
-            <button class="btn btn-danger" onclick="resetForm()">Reset</button>
+            <button class="btn btn-primary" onclick="printPreview()">🖨️ Print Preview</button>
+            <button class="btn btn-danger" onclick="resetForm()">🔄 Reset</button>
         </div>
 
         <div class="status-div" id="statusDiv">Ready to upload a file</div>
@@ -703,7 +702,7 @@
                     <img src="logo.png" alt="University Logo" onerror="this.style.display='none'">
                     <div class="university-header">
                         <h1 class="editable-text" ondblclick="makeEditable(this, 'h1')" title="Double-click to edit">BHATTADEV UNIVERSITY, PATHSALA</h1>
-                        <h2 class="editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">PGET - 2026</h2>
+                        <h2 class="editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">PGET - 2025</h2>
                         <h2 class="editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">${departmentText}</h2>
                         <h3 class="editable-text" ondblclick="makeEditable(this, 'h3')" title="Double-click to edit">${listTypeText}</h3>
                     </div>
@@ -767,7 +766,7 @@
 
             const footer = `
                 <div class="footer-text">
-                    <p class="editable-text" ondblclick="makeEditable(this, 'p')" title="Double-click to edit">The above list has the approval of Hon'ble Vice Chancellor, Bhattadev University, dated ......./........./2026</p>
+                    <p class="editable-text" ondblclick="makeEditable(this, 'p')" title="Double-click to edit">The above list has the approval of Hon'ble Vice Chancellor, Bhattadev University, dated ......./........./2025</p>
                     <br><br>
                     <p class="editable-text" ondblclick="makeEditable(this, 'p')" title="Double-click to edit">Academic Registrar<br>Bhattadev University</p>
                 </div>
@@ -893,12 +892,19 @@
         }
 
         function handleToolbarAction(action, element, originalHTML) {
+            // Ensure element is in edit mode
+            element.contentEditable = 'true';
+            element.focus();
+            
             switch(action) {
                 case 'bold':
+                    document.execCommand('bold', false, null);
+                    break;
                 case 'italic':
+                    document.execCommand('italic', false, null);
+                    break;
                 case 'underline':
-                    document.execCommand(action, false, null);
-                    element.focus();
+                    document.execCommand('underline', false, null);
                     break;
                 case 'increaseFontSize':
                     const currentSize = window.getComputedStyle(element).fontSize;
