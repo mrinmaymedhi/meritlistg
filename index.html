@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merit List PDF Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- SheetJS (xlsx) for Excel file parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Modern Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* General body and font styles */
+        body {
+            font-family: 'Merriweather', serif;
+            font-size: 10pt;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            line-height: 1.1;
+            min-height: 100vh;
+        }
+        
+        /* Modern container for preview */
+        .preview-container {
+            max-width: 297mm;
+            min-height: 210mm;
+            margin: 1rem auto;
+            padding: 8mm;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            background: white;
+            border-radius: 12px;
+            animation: slideUp 0.6s ease-out;
+            display: none;
+        }
+
+        .preview-container.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header container with modern styling */
+        .header-container {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+            padding-top: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-top: 3px solid #1e40af;
+        }
+
+        .header-container img {
+            width: 60px;
+            height: auto;
+            flex-shrink: 0;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+        }
+
+        .university-header {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .university-header h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 16pt;
+            font-weight: 700;
+            color: #1e40af;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+
+        .university-header h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 12pt;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 0.2rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .university-header h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 11pt;
+            font-weight: 600;
+            color: #1e40af;
+            margin-top: 0.3rem;
+            border: 2px solid #1e40af;
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 6px;
+            background-color: #f0f4ff;
+        }
+
+        /* Modern instructions section */
+        .instructions {
+            background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%);
+            padding: 0.8rem;
+            border-radius: 8px;
+            border-left: 4px solid #1e40af;
+            margin-bottom: 1rem;
+        }
+
+        .instructions .note-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 10pt;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .instructions ol {
+            list-style-type: lower-alpha;
+            padding-left: 1.2rem;
+            margin: 0;
+            font-size: 9pt;
+        }
+
+        .instructions li {
+            margin-bottom: 0.3rem;
+            text-align: justify;
+            line-height: 1.3;
+            color: #334155;
+        }
+
+        /* Category title styling */
+        .category-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 12pt;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 0.5rem;
+            margin-bottom: 0.4rem;
+            color: #1e40af;
+            border-bottom: 2px solid #1e40af;
+            padding-bottom: 0.3rem;
+        }
+
+        /* Modern table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            table-layout: fixed;
+            margin-bottom: 0.6rem;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        th, td {
+            border: 0.5px solid #e0e7ff;
+            padding: 3px 2px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        th {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            font-weight: 600;
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        tr:hover {
+            background-color: #f0f4ff;
+        }
+
+        /* Footer text with modern styling */
+        .footer-text {
+            margin-top: 1rem;
+            text-align: right;
+            font-weight: 600;
+            font-size: 10pt;
+            color: #334155;
+            padding-top: 0.8rem;
+            border-top: 2px solid #e0e7ff;
+            line-height: 1.3;
+        }
+
+        /* Control panel styling - modern */
+        .controls-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .controls-container h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            font-family: 'Poppins', sans-serif;
+            display: block;
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e7ff;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+            background-color: #f0f4ff;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: #ffffff !important;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            line-height: 1.4;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            white-space: normal;
+            word-break: break-word;
+            box-sizing: border-box;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(30, 64, 175, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(71, 85, 105, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+        }
+
+        .status-div {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            background-color: #f0fdf4;
+            border: 2px solid #86efac;
+            color: #166534;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+        }
+
+        /* Editing highlight */
+        .is-editing {
+            background-color: #fef3c7 !important;
+            outline: 2px dashed #f59e0b !important;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .editable-text {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .editable-text:hover {
+            background-color: rgba(30, 64, 175, 0.05);
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .editable-text strong,
+        .editable-text b {
+            font-weight: 700;
+        }
+
+        .editable-text em,
+        .editable-text i {
+            font-style: italic;
+        }
+
+        .editable-text u {
+            text-decoration: underline;
+        }
+
+        .edit-toolbar {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            border-radius: 8px;
+            padding: 0.6rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            z-index: 10000;
+            flex-wrap: wrap;
+            max-width: 90%;
+            justify-content: center;
+        }
+
+        .toolbar-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .toolbar-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: white;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 0.2rem;
+        }
+
+        .credit-line {
+            text-align: center;
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            font-size: 13px;
+            margin: 1rem auto;
+            padding: 1.2rem;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(30, 64, 175, 0.3);
+            max-width: 900px;
+            line-height: 1.6;
+        }
+
+        .credit-line a {
+            color: #fbbf24;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .credit-line a:hover {
+            text-decoration: underline;
+        }
+
+        /* Hide logo in print */
+        @media print {
+            .header-container img {
+                display: none !important;
+            }
+            .credit-line {
+                display: none !important;
+            }
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body, html {
+                margin: 0;
+                padding: 0;
+                background: #fff !important;
+            }
+            .controls-container {
+                display: none !important;
+            }
+            .preview-container {
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="credit-line">
+        This webpage is developed by <strong>Mrinmay Medhi</strong> (Research Scholar) under the guidance of <strong>Dr. Upakul Mahanta</strong> (Dept. of Physics, Bhattadev University)
+    </div>
+
+    <div class="controls-container">
+        <h2>Merit List Generator</h2>
+        
+        <div class="form-group">
+            <label for="departmentName">Department Name</label>
+            <input type="text" id="departmentName" placeholder="Enter department name (e.g., Computer Science)">
+        </div>
+
+        <div class="form-group">
+            <label for="listType">List Type</label>
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <select id="listType" style="flex: 1;">
+                    <option value="GENERAL">General</option>
+                    <option value="OBC">OBC</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="FIRST">First</option>
+                    <option value="SECOND">Second</option>
+                    <option value="THIRD">Third</option>
+                    <option value="SPOT">Spot</option>
+                    <option value="OPEN">Open</option>
+                    <option value="CUSTOM">Custom</option>
+                </select>
+            </div>
+            <div id="customListTypeContainer" style="display: none;">
+                <input type="text" id="customListType" placeholder="Enter custom list type name" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e7ff; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 14px;">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput"></label>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+                <label for="fileInput" class="file-input-label">Upload Excel/CSV File</label>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="printPreview()">Print Preview</button>
+            <button class="btn btn-danger" onclick="resetForm()">Reset</button>
+        </div>
+
+        <div class="status-div" id="statusDiv">Ready to upload a file</div>
+    </div>
+
+    <div id="previewContainer" class="preview-container"></div>
+
+    <script>
+        let groupedData = {};
+        let headers = [];
+        let columnWidths = [];
+        let orderedCategories = [];
+        const originalHeaderOrder = { ecIndex: -1, categoryIndex: -1 };
+
+        const fileInput = document.getElementById('fileInput');
+        const departmentNameInput = document.getElementById('departmentName');
+        const listTypeInput = document.getElementById('listType');
+        const customListTypeInput = document.getElementById('customListType');
+        const customListTypeContainer = document.getElementById('customListTypeContainer');
+        const statusDiv = document.getElementById('statusDiv');
+        const previewContainer = document.getElementById('previewContainer');
+
+        fileInput.addEventListener('change', handleFileUpload);
+        
+        // Handle custom list type
+        listTypeInput.addEventListener('change', function() {
+            if (this.value === 'CUSTOM') {
+                customListTypeContainer.style.display = 'block';
+            } else {
+                customListTypeContainer.style.display = 'none';
+            }
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                statusDiv.textContent = 'Processing file...';
+                const fileName = file.name.toLowerCase();
+
+                if (fileName.endsWith('.csv')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const csv = e.target.result;
+                            const json_data = Papa.parse(csv, { header: false }).data;
+                            statusDiv.textContent = 'File parsed. Processing data...';
+                            processData(json_data);
+                        } catch (err) {
+                            statusDiv.textContent = `Error parsing CSV file: ${err.message}`;
+                        }
+                    };
+                    reader.onerror = () => {
+                        statusDiv.textContent = 'Error reading file.';
+                    };
+                    reader.readAsText(file);
+                } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            statusDiv.textContent = 'File parsed. Processing data...';
+                            processData(json_data);
+                        } catch (err) {
+                            statusDiv.textContent = `Error parsing Excel file: ${err.message}`;
+                        }
+                    };
+                    reader.onerror = () => {
+                        statusDiv.textContent = `Error reading file.`;
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    statusDiv.textContent = 'Unsupported file type. Please upload a CSV or Excel file.';
+                }
+            }
+        }
+
+        function processData(data) {
+            groupedData = {};
+            orderedCategories = [];
+            let currentCategory = null;
+            let dateColumnIndex = -1;
+
+            data.forEach(row => {
+                if (!Array.isArray(row) || row.length === 0 || row.every(cell => cell === null || String(cell).trim() === '')) return;
+
+                const firstCell = String(row[0]).trim();
+                const isDataRow = !isNaN(parseInt(firstCell, 10));
+                const isHeaderRow = firstCell.toLowerCase().includes('sl. no.');
+
+                if (!isDataRow && !isHeaderRow) {
+                    currentCategory = firstCell;
+                    if (!groupedData[currentCategory]) {
+                        groupedData[currentCategory] = [];
+                        orderedCategories.push(currentCategory);
+                    }
+                } else if (isHeaderRow && currentCategory) {
+                    let tempHeaders = row.map(h => String(h).trim());
+                    
+                    originalHeaderOrder.ecIndex = tempHeaders.findIndex(h => h.toUpperCase() === 'EC');
+                    originalHeaderOrder.categoryIndex = tempHeaders.findIndex(h => h.toUpperCase() === 'CATEGORY');
+
+                    if (originalHeaderOrder.ecIndex !== -1 && originalHeaderOrder.categoryIndex !== -1) {
+                        const [ecHeader] = tempHeaders.splice(originalHeaderOrder.ecIndex, 1);
+                        const newCategoryIndex = tempHeaders.findIndex(h => h.toUpperCase() === 'CATEGORY');
+                        tempHeaders.splice(newCategoryIndex + 1, 0, ecHeader);
+                    }
+                    
+                    headers = tempHeaders;
+                    dateColumnIndex = headers.findIndex(h => h.toUpperCase().includes('DATE OF BIRTH'));
+                    headers.push("Remarks");
+                } else if (isDataRow && currentCategory) {
+                    let dataRow = [...row];
+
+                    if (originalHeaderOrder.ecIndex !== -1 && originalHeaderOrder.categoryIndex !== -1) {
+                       const [ecValue] = dataRow.splice(originalHeaderOrder.ecIndex, 1);
+                       dataRow.splice(originalHeaderOrder.categoryIndex + 1, 0, ecValue);
+                    }
+
+                    if (dateColumnIndex !== -1 && dataRow[dateColumnIndex]) {
+                        dataRow[dateColumnIndex] = formatDate(dataRow[dateColumnIndex]);
+                    }
+                    dataRow.push("");
+                    groupedData[currentCategory].push(dataRow);
+                }
+            });
+            
+            const columnWidthsMap = {
+                "sl. no.": "1.0cm",
+                "roll no.": "2.0cm",
+                "roll number": "2.0cm",
+                "name of the applicant": "4.2cm",
+                "name of father": "4.2cm",
+                "date of birth": "2.5cm",
+                "gender": "1.5cm",
+                "category": "2.0cm",
+                "ec": "1.0cm",
+                "pwd": "1.2cm",
+                "merit marks": "2.2cm",
+                "remarks": "3.0cm"
+            };
+            columnWidths = headers.map(h => columnWidthsMap[h.toLowerCase()] || 'auto');
+
+            renderHtmlPreview();
+            statusDiv.textContent = 'Preview is ready. Press Ctrl+P to print or click the Print button above.';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString('en-GB');
+        }
+
+        function renderHtmlPreview() {
+            previewContainer.innerHTML = '';
+            previewContainer.classList.add('show');
+
+            const departmentName = departmentNameInput.value.trim();
+            let listType = listTypeInput.value.trim().toUpperCase();
+            
+            // Use custom list type if selected
+            if (listType === 'CUSTOM') {
+                listType = customListTypeInput.value.trim().toUpperCase() || 'CUSTOM';
+            }
+            
+            const departmentText = departmentName ? `Dept :: ${departmentName.toUpperCase()}` : 'Dept :: [Not Specified]';
+            const listTypeText = `PROVISIONAL MERIT LIST [${listType}]`;
+
+            const header = `
+                <div class="header-container">
+                    <img src="logo.png" alt="University Logo" onerror="this.style.display='none'">
+                    <div class="university-header">
+                        <h1 class="editable-text" ondblclick="makeEditable(this, 'h1')" title="Double-click to edit">BHATTADEV UNIVERSITY, PATHSALA</h1>
+                        <h2 class="editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">PGET - 2025</h2>
+                        <h2 class="editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">${departmentText}</h2>
+                        <h3 class="editable-text" ondblclick="makeEditable(this, 'h3')" title="Double-click to edit">${listTypeText}</h3>
+                    </div>
+                </div>
+            `;
+            previewContainer.insertAdjacentHTML('beforeend', header);
+
+            const instructions = `
+                <div class="instructions">
+                    <div class="note-title editable-text" ondblclick="makeEditable(this, 'div')" title="Double-click to edit">📌 <strong>Note ::</strong> The Candidates are asked to bring the following items on the date(s) of the admission:</div>
+                    <ol>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">Hard Copy of "SAMARTH" online Application form.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">Originals of all the required certificates (like DoB, Pass, Caste, GAP, SGC, PRC, EWS etc) and Marksheets along with Xerox copies of the same.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">Candidates seeking admission through fee waived process must bring Ration card (Xerox Copy + Original).</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">Admission will take place in the University premises.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">The admission process will start from 10 am and will remain open up to 4 pm each day.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">Candidates are asked to report 30 minutes prior to the commencement of the admission process.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">University reserves the right to make necessary changes in the merit list.</li>
+                        <li class="editable-text" ondblclick="makeEditable(this, 'li')" title="Double-click to edit">EC/Fringe Village category applicants will be admitted during the SPOT Admission round based on the merit of the certificates they submit, if found eligible, after getting verified by the Competent Authority.</li>
+                    </ol>
+                </div>
+            `;
+            previewContainer.insertAdjacentHTML('beforeend', instructions);
+            
+            const centerAlignedHeaders = ["Roll No.", "Roll Number", "Date of Birth", "Merit Marks"];
+
+            for (const category of orderedCategories) {
+                if (groupedData[category] && groupedData[category].length > 0) {
+                    const categoryTitle = `<h2 class="category-title editable-text" ondblclick="makeEditable(this, 'h2')" title="Double-click to edit">${category}</h2>`;
+                    previewContainer.insertAdjacentHTML('beforeend', categoryTitle);
+                    
+                    let tableHTML = '<table><thead><tr>';
+                    headers.forEach((h, i) => {
+                        tableHTML += `<th style="width: ${columnWidths[i] || 'auto'}" class="editable-text" ondblclick="makeEditable(this, 'th')" title="Double-click to edit">${h}</th>`;
+                    });
+                    tableHTML += '</tr></thead><tbody>';
+
+                    groupedData[category].forEach(row => {
+                        tableHTML += '<tr>';
+                        row.forEach((cell, cellIndex) => {
+                            const headerText = headers[cellIndex];
+                            const isCentered = centerAlignedHeaders.some(h => h.toLowerCase() === headerText.toLowerCase());
+                            const isSlNo = headerText.toLowerCase() === 'sl. no.';
+                            let style = '';
+                            if (isSlNo) {
+                                style = 'style="text-align: right;"';
+                            } else if (isCentered) {
+                                style = 'style="text-align: center;"';
+                            } else {
+                                style = 'style="text-align: left;"';
+                            }
+                            tableHTML += `<td ${style} class="editable-text" ondblclick="makeEditable(this, 'td')" title="Double-click to edit">${cell === null || cell === undefined ? '' : cell}</td>`;
+                        });
+                        tableHTML += '</tr>';
+                    });
+
+                    tableHTML += '</tbody></table>';
+                    previewContainer.insertAdjacentHTML('beforeend', tableHTML);
+                }
+            }
+
+            const footer = `
+                <div class="footer-text">
+                    <p class="editable-text" ondblclick="makeEditable(this, 'p')" title="Double-click to edit">The above list has the approval of Hon'ble Vice Chancellor, Bhattadev University, dated ......./........./2025</p>
+                    <br><br>
+                    <p class="editable-text" ondblclick="makeEditable(this, 'p')" title="Double-click to edit">Academic Registrar<br>Bhattadev University</p>
+                </div>
+            `;
+            previewContainer.insertAdjacentHTML('beforeend', footer);
+        }
+
+        let currentEditingElement = null;
+        let currentToolbar = null;
+
+        function makeEditable(element, type) {
+            if (element.isEditing) return;
+            
+            element.isEditing = true;
+            currentEditingElement = element;
+            const originalText = element.textContent;
+            const originalHTML = element.innerHTML;
+            
+            element.classList.add('is-editing');
+            element.contentEditable = true;
+            element.focus();
+            
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            // Create toolbar
+            createEditToolbar(element, originalHTML);
+
+            function saveChanges() {
+                element.contentEditable = false;
+                element.classList.remove('is-editing');
+                element.isEditing = false;
+                currentEditingElement = null;
+                if (currentToolbar) {
+                    currentToolbar.remove();
+                    currentToolbar = null;
+                }
+            }
+
+            function cancelEdit() {
+                element.innerHTML = originalHTML;
+                saveChanges();
+            }
+
+            element.addEventListener('blur', saveChanges, { once: true });
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            }, { once: true });
+        }
+
+        function createEditToolbar(element, originalHTML) {
+            // Remove existing toolbar if any
+            if (currentToolbar) {
+                currentToolbar.remove();
+            }
+
+            const toolbar = document.createElement('div');
+            toolbar.className = 'edit-toolbar';
+            currentToolbar = toolbar;
+
+            const buttons = [
+                { text: '🔤', title: 'Font Size', action: 'fontSize' },
+                { text: '+', title: 'Increase Size', action: 'increaseFontSize' },
+                { text: '−', title: 'Decrease Size', action: 'decreaseFontSize' },
+                'separator',
+                { text: '<strong>B</strong>', title: 'Bold', action: 'bold' },
+                { text: '<em>I</em>', title: 'Italic', action: 'italic' },
+                { text: '<u>U</u>', title: 'Underline', action: 'underline' },
+                'separator',
+                { text: '✓', title: 'Save (Blur/Click Out)', action: 'save' },
+                { text: '✕', title: 'Cancel (Esc)', action: 'cancel' }
+            ];
+
+            buttons.forEach(btn => {
+                if (btn === 'separator') {
+                    const sep = document.createElement('div');
+                    sep.className = 'toolbar-separator';
+                    toolbar.appendChild(sep);
+                } else {
+                    const button = document.createElement('button');
+                    button.className = 'toolbar-btn';
+                    button.innerHTML = btn.text;
+                    button.title = btn.title;
+                    button.type = 'button';
+
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Save current selection
+                        const sel = window.getSelection();
+                        if (sel.rangeCount > 0) {
+                            var range = sel.getRangeAt(0);
+                        }
+                        
+                        handleToolbarAction(btn.action, element, originalHTML);
+                        
+                        // Restore focus to element
+                        element.focus();
+                        
+                        // Restore selection if it was saved
+                        if (range) {
+                            try {
+                                sel.removeAllRanges();
+                                sel.addRange(range);
+                            } catch(e) {
+                                // Selection may have changed, that's ok
+                            }
+                        }
+                    });
+
+                    toolbar.appendChild(button);
+                }
+            });
+
+            document.body.appendChild(toolbar);
+        }
+
+        function handleToolbarAction(action, element, originalHTML) {
+            switch(action) {
+                case 'bold':
+                case 'italic':
+                case 'underline':
+                    document.execCommand(action, false, null);
+                    element.focus();
+                    break;
+                case 'increaseFontSize':
+                    const currentSize = window.getComputedStyle(element).fontSize;
+                    const newSize = (parseFloat(currentSize) + 2) + 'px';
+                    element.style.fontSize = newSize;
+                    break;
+                case 'decreaseFontSize':
+                    const currSize = window.getComputedStyle(element).fontSize;
+                    const decSize = Math.max(8, parseFloat(currSize) - 2) + 'px';
+                    element.style.fontSize = decSize;
+                    break;
+                case 'cancel':
+                    element.innerHTML = originalHTML;
+                    element.contentEditable = false;
+                    element.classList.remove('is-editing');
+                    element.isEditing = false;
+                    if (currentToolbar) {
+                        currentToolbar.remove();
+                        currentToolbar = null;
+                    }
+                    break;
+            }
+        }
+
+        function printPreview() {
+            if (previewContainer.innerHTML.trim() === '') {
+                statusDiv.textContent = '⚠️ Please upload a file first to generate a preview.';
+                return;
+            }
+            window.print();
+        }
+
+        function resetForm() {
+            fileInput.value = '';
+            departmentNameInput.value = '';
+            listTypeInput.value = 'GENERAL';
+            customListTypeInput.value = '';
+            customListTypeContainer.style.display = 'none';
+            previewContainer.innerHTML = '';
+            previewContainer.classList.remove('show');
+            statusDiv.textContent = 'Form reset. Ready to upload a new file.';
+            groupedData = {};
+            headers = [];
+            columnWidths = [];
+            orderedCategories = [];
+        }
+    </script>
+</body>
+</html>
