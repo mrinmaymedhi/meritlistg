@@ -483,11 +483,11 @@
 </head>
 <body>
     <div class="credit-line">
-        📝 This webpage is developed by <strong>Mrinmay Medhi</strong> (Research Scholar) under the guidance of <strong>Dr. Upakul Mahanta</strong> (Dept. of Physics, Bhattadev University)
+        This webpage is developed by <strong>Mrinmay Medhi</strong> (Research Scholar) under the guidance of <strong>Dr. Upakul Mahanta</strong> (Dept. of Physics, Bhattadev University)
     </div>
 
     <div class="controls-container">
-        <h2>📋 Merit List Generator</h2>
+        <h2>Merit List Generator</h2>
         
         <div class="form-group">
             <label for="departmentName">Department Name</label>
@@ -524,8 +524,8 @@
         </div>
 
         <div class="button-group">
-            <button class="btn btn-primary" onclick="printPreview()">🖨️ Print Preview</button>
-            <button class="btn btn-danger" onclick="resetForm()">🔄 Reset</button>
+            <button class="btn btn-primary" onclick="printPreview()">Print Preview</button>
+            <button class="btn btn-danger" onclick="resetForm()">Reset</button>
         </div>
 
         <div class="status-div" id="statusDiv">Ready to upload a file</div>
@@ -834,7 +834,7 @@
             currentToolbar = toolbar;
 
             const buttons = [
-                { text: '🔤', title: 'Font Size', action: 'fontSize' },
+                { text: '<', title: 'Font Size', action: 'fontSize' },
                 { text: '+', title: 'Increase Size', action: 'increaseFontSize' },
                 { text: '−', title: 'Decrease Size', action: 'decreaseFontSize' },
                 'separator',
@@ -931,7 +931,7 @@
 
         function printPreview() {
             if (previewContainer.innerHTML.trim() === '') {
-                statusDiv.textContent = '⚠️ Please upload a file first to generate a preview.';
+                statusDiv.textContent = '! Please upload a file first to generate a preview.';
                 return;
             }
             window.print();
